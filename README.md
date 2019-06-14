@@ -1,3 +1,6 @@
+Disclaimer:
+	Most of these have been written at 3 AM. Please excuse the sloppy nature and round-about code... If you think you can write it better, please contribute!
+
 This is a repo for some language learning helper scripts.
 This will start out with simple subtitle parsing scripts and maybe branch into something else.
 
@@ -14,7 +17,7 @@ SRT2ASS
 
 	TO DO's:
 		Include support for multiple files.
-		Include support for edited .ass headers.
+		Include support for default.ass headers without needing it in $PATH.
 		Clean up script.
 	
 

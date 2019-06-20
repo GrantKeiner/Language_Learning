@@ -17,6 +17,7 @@
 #
 #  Author: Grant Keiner
 
+import re
 import sys
 
 usage = "\nUsage: INPUT.srt OUTPUT.ass\n OUTPUT is optional, the INPUT name will be used.\n\n"
@@ -25,66 +26,35 @@ usage = "\nUsage: INPUT.srt OUTPUT.ass\n OUTPUT is optional, the INPUT name will
 #     structured: line_number[time_stamp, text0, text1, ... etc.]
 def gather_data():
     subtitle_lines = {}
-    not_EOF = True
-
+    regex = r"^(\d\d:.*)\n(.*\n.*)"
+    
     with open(sys.argv[1], 'r') as srt:
+        matches = re.finditer(regex, srt.read(), re.MULTILINE)
+        for matchNum, match in enumerate(matches, start=1):
+            subtitle_lines[matchNum] = list()
 
-        while(not_EOF):
-
-            # Grab the current line number (and do some filtering to grab the correct line number).
-            line_number = ""
-            line_number_unfiltered = srt.readline()
-            for char in line_number_unfiltered:
-                if char.isdigit():
-                    line_number += char
-
-            # Grab timestamp
-            time_stamp = srt.readline()
-
-            # Add the beginning of the Dialogue to 
-            subtitle_lines[line_number] = [time_stamp[:-2]]
-
-            # Grab the next line, and ensure it's not a new time stamp by checking if line contains only a newline.
-            next_line = srt.readline()
-
-            while next_line != "\n" and next_line != "":
-
-                # Append new record to subtitle_lines
-                subtitle_lines[line_number].append(next_line)
-                next_line = srt.readline()
-
-            # check for EOF
-            if next_line == "":
-                not_EOF = False    
-
+            for groupNum in range(0, len(match.groups())):
+                groupNum = groupNum + 1
+            
+                subtitle_lines[matchNum].append("{group}".format(groupNum = groupNum, start = match.start(groupNum), end = match.end(groupNum), group = match.group(groupNum)))
     return(subtitle_lines)
 
 def write_ass(OUTPUT, subtitle_lines):
 
     # Open default.ass header file, and write new file to OUTPUT
-    try:
-        with open('default.ass', 'r') as header:
-            with open(OUTPUT, 'w') as out_file:
-                out_file.write(header.read())
-            
-                for nums in range(1,len(subtitle_lines)):
-                    out_line = ''
-
-                    for i in range(len(subtitle_lines[str(nums)])):
-                        if i == 0:
-                            out_line += "Dialogue: 0," + subtitle_lines[str(nums)][i][1:11].replace(',','.') + ',' + subtitle_lines[str(nums)][i][18:-1].replace(',','.') + ",Default,,0,0,0,,"
-                        else:
-                            out_line += subtitle_lines[str(nums)][i]
-
-                    out_line = out_line.replace("\n", "\\N")
-                    if out_line[-2:] == "\\N":
-                        out_file.write(out_line[:-2] + '\n')
-                    else:
-                        out_file.write(out_line + '\n')
-
-
+    try: 
+    	# TODO: Change this up to allow custom ASS file headers
+        header = open('default.ass', 'r')
     except:
         print("\nHaving trouble writing to new file...\n are you sure default.ass exists in $PATH?\n")
+        
+    with open(OUTPUT, 'w') as out_file:
+        out_file.write(header.read())
+        header.close()
+    
+        for nums in range(1,len(subtitle_lines)+1):
+            out_file.write("Dialogue: 0," + subtitle_lines[nums][0][1:11].replace(',','.') + ',' + subtitle_lines[nums][0][18:-2].replace(',','.') + ",Default,,0,0,0,,"+ str(subtitle_lines[nums][1]).replace('\n','\\N')+'\n')
+
     
 
 ###############################
@@ -92,14 +62,19 @@ def write_ass(OUTPUT, subtitle_lines):
 ###############################
 
 def main():
-    INPUT = sys.argv[1]
-
     # Check if user has supplied the INPUT and INPUT is .srt
+    try:
+        INPUT = sys.argv[1]
+    except:
+        print(usage)
+
     if len(sys.argv) >= 2 and INPUT[-3:] == "srt":
+        
         try:
             OUTPUT = sys.argv[2]
         except:
             OUTPUT = sys.argv[1][:-3] + 'ass'
+
         write_ass(OUTPUT,gather_data())
         
     else:
